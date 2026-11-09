@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f5">
+  <title>Vensim script builder</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="model.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">Vensim Tools</span>
+    <div class="top-links"><a href="https://www.vensim.com/documentation/ref_cmd_supported.html" target="_blank" rel="noopener noreferrer">Documentation ↗</a></div>
+  </header>
+  <main>
+    <div class="page-heading"><div class="heading-copy"><h1>Script builder<span>.</span></h1><p>Build a replicable workflow with command scripts to use in Vensim.</p></div>
+    <label class="button outline import" for="import-file">↑ &nbsp;Import .cmd</label><input id="import-file" type="file" accept=".cmd,.txt,text/plain" hidden></div>
+    <datalist id="model-constants"></datalist>
+    <div class="workspace">
+      <section class="builder" aria-labelledby="workflow-title">
+        <div class="section-title">
+          <div><h2 id="workflow-title">Workflow <span id="step-count" class="count">0 steps</span></h2></div>
+          <div class="workflow-actions">
+            <section class="model-context" id="model-drop" aria-label="Model context">
+              <label class="button outline model-choose" for="model-file" tabindex="0" role="button" title="Choose or drop a model file" aria-label="Choose model .mdl file">.mdl</label><input id="model-file" type="file" accept=".mdl" hidden>
+              <details class="model-details">
+                <summary id="model-status">Model Context</summary>
+                <div class="model-info">
+                  <strong id="model-title">Add model context</strong><span id="model-summary">Drop a UTF-8 .mdl file here to find constants and set export times.</span><span id="model-warning" class="model-warning" hidden></span><details id="model-unresolved" hidden><summary>Show unresolved definitions</summary><ul id="model-unresolved-list"></ul></details>
+                  <button class="plain" id="model-clear" type="button" hidden>Remove</button>
+                </div>
+              </details>
+            </section>
+            <button id="clear-button" class="plain" type="button">Clear all</button>
+          </div>
+        </div>
+        <div class="addbar"><span>ADD STEP</span><button type="button" class="add single" data-add="single"><b>▶</b> Single Run</button><button type="button" class="add sensitivity" data-add="sensitivity"><b>◈</b> Sensitivity Run</button><button type="button" class="add export" data-add="export"><b>↗</b> Export CSV</button><button type="button" class="add custom" data-add="raw"><b>＋</b> Custom</button></div>
+        <div id="steps" class="steps"></div>
+        <div id="empty-state" class="empty" hidden><strong>Start with a step</strong><p>Add a run or import an existing script.</p></div>
+        <p class="footnote">New runs reset model changes; imported runs retain their original reset behavior. File paths are resolved by Vensim, not this page.</p>
+      </section>
+      <aside class="preview-panel">
+        <div class="preview-header"><div><div class="eyebrow">THE OUTPUT</div><h2>Script preview <span>✳</span></h2></div><span class="file-badge">.CMD</span></div>
+        <div class="code-window"><div class="code-top"><span>● &nbsp;● &nbsp;●</span><span id="line-count">0 lines</span></div><pre id="preview" aria-label="Script preview"></pre></div>
+        <div id="warnings" class="warnings" role="status" hidden></div>
+        <div class="preview-actions"><button type="button" class="button download" id="download-button"><span aria-hidden="true">↓</span> &nbsp;Export .cmd</button><button type="button" class="button copy" id="copy-button">Copy</button></div>
+        <p class="privacy">◈ &nbsp;Your files stay in your browser. Review your script before running it.</p>
+        <div class="reference"><strong>Need a hand?</strong><br>See the <a href="https://www.vensim.com/documentation/ref_cmd_supported.html" target="_blank" rel="noopener noreferrer">Vensim command reference ↗</a></div>
+      </aside>
+    </div>
+    <footer><span>Created by Ryan Tan.</span></footer>
+  </main>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>
