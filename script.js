@@ -254,6 +254,8 @@ if (typeof document !== "undefined") {
   function renderModel() {
     const list = document.querySelector("#model-constants");
     list.replaceChildren();
+    const variableList = document.querySelector("#model-variables");
+    variableList.replaceChildren();
     if (model) {
       model.constants.forEach(constant => {
         const option = document.createElement("option");
@@ -261,11 +263,15 @@ if (typeof document !== "undefined") {
         option.label = `Model value: ${constant.value}`;
         list.append(option);
       });
+      model.variables.forEach(name => {
+        const option = document.createElement("option"); option.value = name;
+        variableList.append(option);
+      });
     }
     document.querySelector("#model-title").textContent = model ? model.filename : "Add model context";
     document.querySelector("#model-summary").textContent = model
-      ? `${model.constants.length} selectable constants · Time: ${model.initialTime || "unknown"}–${model.finalTime || "unknown"}${model.timeUnit ? ` ${model.timeUnit}` : ""}`
-      : "Drop a UTF-8 .mdl file here to find constants and set export times.";
+      ? `${model.constants.length} selectable constants · ${model.variables.length} variables · Time: ${model.initialTime || "unknown"}–${model.finalTime || "unknown"}${model.timeUnit ? ` ${model.timeUnit}` : ""}`
+      : "Drop a UTF-8 .mdl file here to find variables and set export times.";
     const warning = document.querySelector("#model-warning");
     const notices = [];
     if (model && model.unresolved.length) notices.push(`${model.unresolved.length} numeric definitions could not be resolved into selectable constants.`);

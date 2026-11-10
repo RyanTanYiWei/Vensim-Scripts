@@ -46,6 +46,21 @@ test("never guesses missing time expressions or unsupported range values", () =>
   assert.deepEqual(model.unresolved, ["X[Range]"]);
 });
 
+test("provides model equation names and resolved subscript constants for output searches", () => {
+  const model = parseModel(sample);
+  for (const name of ["Calculated", "Level", "Locked", "Extern", "Unknown[Region,Stocks]", "Matrix[North,Stocks]", "Matrix[North,A]", "Matrix[North,B]"]) {
+    assert.ok(model.variables.includes(name), `Missing ${name}`);
+  }
+  assert.ok(!model.variables.includes("Bogus"));
+  assert.ok(!model.variables.includes("Region"));
+  assert.ok(!model.constants.some(constant => constant.name === "Calculated"));
+});
+
+test("deduplicates output search names and skips malformed equation names", () => {
+  const model = parseModel("X=1~~| x=2~~| Bad[one,]=3~~| Y=INTEG(X,0)~~|");
+  assert.deepEqual(model.variables, ["X", "Y"]);
+});
+
 test("name matching ignores case, underscores and subscript spacing", () => {
   assert.equal(modelKey("My_variable [North, South]"), modelKey("my variable[north,south]"));
 });

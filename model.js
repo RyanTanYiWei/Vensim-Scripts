@@ -92,7 +92,19 @@ function parseModel(text) {
     else if (!unique.has(key)) unique.set(key, constant);
   }
   for (const key of conflicts) { unresolved.push(unique.get(key).name); unique.delete(key); }
-  return { constants: [...unique.values()], initialTime, finalTime, timeUnit, unresolved };
+  const variables = new Map();
+  for (const equation of equations) {
+    const match = /^([^\[\]]+)(?:\[([^\[\]]+)\])?$/.exec(equation.name);
+    if (!match || !isModelName(match[1].trim())) continue;
+    if (match[2] && !match[2].split(",").every(part => isModelName(part.trim()))) continue;
+    const key = modelKey(equation.name);
+    if (!variables.has(key)) variables.set(key, equation.name);
+  }
+  for (const constant of unique.values()) {
+    const key = modelKey(constant.name);
+    if (!variables.has(key)) variables.set(key, constant.name);
+  }
+  return { constants: [...unique.values()], variables: [...variables.values()], initialTime, finalTime, timeUnit, unresolved };
 }
 
 if (typeof module !== "undefined" && module.exports) module.exports = { parseModel, modelKey };

@@ -4,35 +4,42 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f7f5">
-  <title>Vensim script builder</title>
+  <title>Script Builder</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="model.js"></script>
   <script defer src="script.js"></script>
+  <script defer src="vendor/lobos-standalone.js"></script>
 </head>
 <body>
   <header class="topbar">
     <span class="brand">Vensim Tools</span>
+    <nav class="tool-switch" aria-label="Tools">
+      <a href="#script-builder" class="selected" data-page="builder-page" aria-current="page">Script Builder</a>
+      <a href="#sensitivity-sampler" data-page="sampler-page">Sensitivity Sampler</a>
+    </nav>
+    <section class="model-context" id="model-drop" aria-label="Model context">
+      <label class="button outline model-choose" for="model-file" tabindex="0" role="button" title="Choose or drop a model file" aria-label="Choose model .mdl file">.mdl</label><input id="model-file" type="file" accept=".mdl" hidden>
+      <details class="model-details">
+        <summary id="model-status">Model Context</summary>
+        <div class="model-info">
+          <strong id="model-title">Add model context</strong><span id="model-summary">Drop a UTF-8 .mdl file here to find variables and set export times.</span><span id="model-warning" class="model-warning" hidden></span><details id="model-unresolved" hidden><summary>Show unresolved definitions</summary><ul id="model-unresolved-list"></ul></details>
+          <button class="plain" id="model-clear" type="button" hidden>Remove</button>
+        </div>
+      </details>
+    </section>
     <div class="top-links"><a href="https://www.vensim.com/documentation/ref_cmd_supported.html" target="_blank" rel="noopener noreferrer">Documentation ↗</a></div>
   </header>
+  <datalist id="model-constants"></datalist>
+  <datalist id="model-variables"></datalist>
   <main>
-    <div class="page-heading"><div class="heading-copy"><h1>Script builder<span>.</span></h1><p>Build a replicable workflow with command scripts to use in Vensim.</p></div>
+    <section id="builder-page">
+    <div class="page-heading"><div class="heading-copy"><h1>Script Builder<span>.</span></h1><p>Build a replicable workflow with command scripts to use in Vensim.</p></div>
     <label class="button outline import" for="import-file">↑ &nbsp;Import .cmd</label><input id="import-file" type="file" accept=".cmd,.txt,text/plain" hidden></div>
-    <datalist id="model-constants"></datalist>
     <div class="workspace">
       <section class="builder" aria-labelledby="workflow-title">
         <div class="section-title">
           <div><h2 id="workflow-title">Workflow <span id="step-count" class="count">0 steps</span></h2></div>
           <div class="workflow-actions">
-            <section class="model-context" id="model-drop" aria-label="Model context">
-              <label class="button outline model-choose" for="model-file" tabindex="0" role="button" title="Choose or drop a model file" aria-label="Choose model .mdl file">.mdl</label><input id="model-file" type="file" accept=".mdl" hidden>
-              <details class="model-details">
-                <summary id="model-status">Model Context</summary>
-                <div class="model-info">
-                  <strong id="model-title">Add model context</strong><span id="model-summary">Drop a UTF-8 .mdl file here to find constants and set export times.</span><span id="model-warning" class="model-warning" hidden></span><details id="model-unresolved" hidden><summary>Show unresolved definitions</summary><ul id="model-unresolved-list"></ul></details>
-                  <button class="plain" id="model-clear" type="button" hidden>Remove</button>
-                </div>
-              </details>
-            </section>
             <button id="clear-button" class="plain" type="button">Clear all</button>
           </div>
         </div>
@@ -50,8 +57,64 @@
         <div class="reference"><strong>Need a hand?</strong><br>See the <a href="https://www.vensim.com/documentation/ref_cmd_supported.html" target="_blank" rel="noopener noreferrer">Vensim command reference ↗</a></div>
       </aside>
     </div>
-    <footer><span>Created by Ryan Tan.</span></footer>
+    </section>
+    <section id="sampler-page" hidden>
+    <div class="page-heading">
+      <div class="heading-copy"><h1>Sensitivity Sampler<span>.</span></h1><p>Organize constants, sampled inputs, and outputs, then export Vensim-ready files.</p></div>
+    </div>
+    <div class="sampler-top-panels">
+    <section class="sampler-panel sampler-controls" aria-labelledby="sampler-import-title">
+      <div class="sampler-controls-heading">
+        <div><h2 id="sampler-import-title">Import or paste a table</h2><p>Use a CSV file or paste rows copied from Excel.</p></div>
+        <div class="sampler-controls-actions">
+          <label class="button outline import" for="sampler-file">↑ &nbsp;Import .csv</label>
+          <input id="sampler-file" type="file" accept=".csv,text/csv" hidden>
+        </div>
+      </div>
+      <div class="sampler-paste-row">
+        <div class="sampler-paste-field">
+          <label class="sampler-paste-label" for="sampler-paste">Paste CSV or Excel cells</label>
+          <textarea id="sampler-paste" rows="2" placeholder="Paste the header and rows here"></textarea>
+        </div>
+        <button type="button" class="button outline" id="sampler-paste-import">Import pasted rows</button>
+      </div>
+      <div id="sampler-status" class="sampler-status" role="status" aria-live="polite"></div>
+    </section>
+    <section class="sampler-panel sampler-settings" aria-labelledby="sampler-settings-title">
+      <div class="sampler-section-heading">
+        <div><h2 id="sampler-settings-title">Sensitivity settings</h2></div>
+        <button type="button" class="button sampler-download-all" id="sampler-download-all">↓ &nbsp;Download All</button>
+      </div>
+      <div class="sampler-settings-grid">
+        <label>Method<select id="sampler-method"><option value="L">Latin Hypercube (L)</option><option value="sobol">Sobol (file method F)</option></select></label>
+        <label><span id="sampler-count-label">Simulations</span><input type="number" id="sampler-simulations" min="1" step="1" value="100"></label>
+        <label>Seed<input type="number" id="sampler-seed" min="0" max="2147483647" step="1" value="1234"></label>
+        <label>Warnings<input type="text" value="1" readonly aria-label="Warnings (fixed at 1)"></label>
+        <label>Output prefix<input id="sampler-prefix" type="text" value="Tipping" aria-label="Output filename prefix"></label>
+        <label id="sampler-order-field" hidden>Sobol order<select id="sampler-order"><option value="first">First order</option><option value="total">Total order</option><option value="second">Second order</option></select></label>
+        <label id="sampler-sobol-file-field" hidden>Sample filename (.txt)<input type="text" id="sampler-sobol-file" placeholder="Uses output prefix + _sobol"></label>
+      </div>
+      <p class="sampler-settings-note" id="sampler-settings-note" hidden></p>
+    </section>
+    </div>
+    <section class="sampler-panel" aria-labelledby="sampler-rows-title">
+      <div class="sampler-section-heading">
+        <div><h2 id="sampler-rows-title">Sampler rows</h2></div>
+        <button type="button" class="button outline" data-export="table">↓ Export table .csv</button>
+      </div>
+      <div id="sampler-groups"></div>
+      <div class="sampler-exports">
+        <button type="button" class="button download" data-export="constant">↓ Download _constant.csv</button>
+        <button type="button" class="button download" data-export="input">↓ Download _input.vsc</button>
+        <button type="button" class="button download" data-export="output">↓ Download _output.lst</button>
+        <button type="button" class="button download" data-export="sobol" id="sampler-sobol-download" hidden>↓ Download Sobol .txt</button>
+      </div>
+    </section>
+    <p class="footnote">Files are generated in your browser and are not uploaded. Input distributions supported by the example format: UNIFORM and VECTOR.</p>
+    </section>
+    <footer><span>Created by Ryan Tan.</span><span>Built with AI; duh.</span></footer>
   </main>
   <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  <script defer src="sampler.js"></script>
 </body>
 </html>
