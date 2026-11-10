@@ -2,6 +2,8 @@
 
 A browser-only Vensim script builder. Open `index.html` or publish the repository root with GitHub Pages; no build or server is required. Clipboard access requires a secure context such as GitHub Pages or localhost. Files are read locally and are not uploaded.
 
+When publishing changes, update the `v` query string in `index.html` for each changed CSS or JavaScript asset so browsers request the new version rather than using a cached copy. GitHub Pages also caches the HTML briefly; if a deployment looks stale, export any work and hard-refresh after the deployment finishes.
+
 Use the navigation links to switch tools without losing the current in-page work. Bookmark or share [Script Builder](./index.html#script-builder) or [Sensitivity Sampler](./index.html#sensitivity-sampler) to open the corresponding tool directly. Browser Back and Forward switch tools as well. Reloading or opening a link in a new tab starts a fresh session; save your work before leaving.
 
 Use the **Sensitivity Sampler** tab to import a `.csv` table or paste CSV/tab-separated rows copied from Excel. Edit and sort entries by Constant, Input, and Output in the interface, then download `_constant.csv`, `_input.vsc`, and `_output.lst` using the output prefix. The VSC generator supports `UNIFORM` and `VECTOR` distributions. When a model is loaded, Constant and Input variable fields suggest changeable numeric constants, while Output fields suggest model equation names and resolved constant elements. Names remain freely editable; check subscript selections against the model.
