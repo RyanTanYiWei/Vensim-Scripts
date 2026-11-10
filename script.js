@@ -34,6 +34,15 @@ function setval(variable) {
   return /[\[\]]/.test(variable.name) ? `"${command}"` : command;
 }
 
+function withExtension(filename, extension, existingExtensions = [extension]) {
+  if (!filename) return filename;
+  return existingExtensions.some(suffix => filename.toLowerCase().endsWith(suffix)) ? filename : `${filename}${extension}`;
+}
+
+function filenameStem(filename, extension) {
+  return filename.toLowerCase().endsWith(extension) ? filename.slice(0, -extension.length) : filename;
+}
+
 function getRuns(steps) {
   const runs = [];
   let name = "";
@@ -221,7 +230,7 @@ function parseCSV(text) {
 
 function controlText(step) { return `,F,,${step.samples},1\r\n`; }
 
-if (typeof module !== "undefined" && module.exports) module.exports = { createStep, duplicateStep, variableCountText, createExportRow, addAllRuns, applyExportTimes, stepLines, parseScript, parseCSV, controlText, getRuns };
+if (typeof module !== "undefined" && module.exports) module.exports = { createStep, duplicateStep, variableCountText, createExportRow, addAllRuns, applyExportTimes, stepLines, parseScript, parseCSV, controlText, getRuns, withExtension, filenameStem };
 
 if (typeof document !== "undefined") {
   let steps = [createStep("single")];
@@ -406,6 +415,22 @@ if (typeof document !== "undefined") {
     });
     return wrapper;
   }
+  function fixedExtensionField(labelText, step, key, extension, placeholder) {
+    const wrapper = document.createElement("div"); wrapper.className = "field";
+    const label = document.createElement("label"); label.textContent = labelText;
+    const group = document.createElement("div"); group.className = "fixed-extension";
+    const input = document.createElement("input"); input.type = "text";
+    input.value = filenameStem(step[key], extension); input.placeholder = placeholder;
+    input.setAttribute("aria-label", `${labelText} filename`);
+    const suffix = document.createElement("span"); suffix.textContent = extension; suffix.setAttribute("aria-hidden", "true");
+    group.append(input, suffix); label.append(group); wrapper.append(label);
+    input.addEventListener("input", () => {
+      step[key] = withExtension(input.value, extension);
+      input.value = filenameStem(step[key], extension);
+      updatePreview();
+    });
+    return wrapper;
+  }
   function variableSection(step, index) {
     const container = document.createElement("div");
     const heading = document.createElement("div"); heading.className = "variable-heading";
@@ -450,12 +475,12 @@ if (typeof document !== "undefined") {
     if (step.type === "single" || step.type === "sensitivity") {
       if (step.type === "sensitivity") grid.append(field("Sample source", step, "mode", "", [["vsc", "Sensitivity control file (.vsc)"], ["samples", "Sample table (.txt)"]]));
       if (step.type === "sensitivity") {
-        if (step.mode === "vsc") grid.append(field("Sensitivity input (.vsc)", step, "vsc", "e.g. Tipping_input.vsc"));
+        if (step.mode === "vsc") grid.append(fixedExtensionField("Sensitivity input", step, "vsc", ".vsc", "e.g. Tipping_input"));
         else {
-          grid.append(field("Sample table (.txt)", step, "samples", "e.g. Tipping_sobol.txt"));
-          grid.append(field("Control file to create (.vsc)", step, "control", "e.g. samples.vsc"));
+          grid.append(fixedExtensionField("Sample table", step, "samples", ".txt", "e.g. Tipping_sobol"));
+          grid.append(fixedExtensionField("Control file to create", step, "control", ".vsc", "e.g. samples"));
         }
-        grid.append(field("Output variable list (.lst)", step, "output", "e.g. Tipping_output.lst"));
+        grid.append(fixedExtensionField("Output variable list", step, "output", ".lst", "e.g. Tipping_output"));
       }
       if (step.type === "sensitivity") settings.append(grid);
       if (step.reset === false) {
@@ -469,7 +494,7 @@ if (typeof document !== "undefined") {
         note.textContent = "Vensim needs a control file for file-based samples. Download it and place it where Vensim can find it. The sample file must be tab-delimited, with variable names in the first row.";
         const create = makeButton("Download sensitivity control file", "↓ Download .vsc control file", () => {
           if (!step.samples.trim() || !step.control.trim() || /[,\r\n]/.test(step.samples)) { alert("Enter valid sample and control filenames first. The sample filename cannot contain a comma or newline."); return; }
-          download(step.control, controlText(step)); announce("Sensitivity control file downloaded.");
+          download(withExtension(step.control, ".vsc"), controlText(step)); announce("Sensitivity control file downloaded.");
         });
         create.className = "small-button"; settings.append(note, create);
       }
@@ -628,12 +653,23 @@ if (typeof document !== "undefined") {
           heading.append(variables);
         }
         const changeInputs = document.createElement("div"); changeInputs.className = "header-inputs";
-        const changeFile = document.createElement("input"); changeFile.className = "run-cin"; changeFile.value = step.cin;
+        const changeExtension = [".csv", ".cin", ".tab", ".txt"].find(extension => step.cin.toLowerCase().endsWith(extension))
+          || (step.imported && step.cin ? "" : ".csv");
+        const changeGroup = document.createElement("div"); changeGroup.className = "fixed-extension header-input-file";
+        const changeFile = document.createElement("input"); changeFile.className = "run-cin"; changeFile.value = changeExtension ? filenameStem(step.cin, changeExtension) : step.cin;
         changeFile.placeholder = "Additional Inputs";
-        changeFile.setAttribute("aria-label", `Additional Inputs (.csv, .cin, .tab, .txt) for step ${index + 1}`);
-        changeFile.title = "Filename: .csv, .cin, .tab, or .txt. Passed to Vensim READCIN; use a compatible change-file format.";
-        changeFile.addEventListener("input", () => { step.cin = changeFile.value; updatePreview(); });
-        changeInputs.append(changeFile); heading.append(changeInputs);
+        changeFile.setAttribute("aria-label", `Additional Inputs filename (${changeExtension || "no extension"}) for step ${index + 1}`);
+        changeFile.title = "Filename without extension. Passed to Vensim READCIN; use a compatible change-file format.";
+        if (changeExtension) {
+          const changeSuffix = document.createElement("span"); changeSuffix.textContent = changeExtension; changeSuffix.setAttribute("aria-hidden", "true");
+          changeGroup.append(changeFile, changeSuffix);
+        } else changeGroup.append(changeFile);
+        changeFile.addEventListener("input", () => {
+          step.cin = changeFile.value && changeExtension ? withExtension(changeFile.value, changeExtension) : changeFile.value;
+          if (changeExtension) changeFile.value = filenameStem(step.cin, changeExtension);
+          updatePreview();
+        });
+        changeInputs.append(changeGroup); heading.append(changeInputs);
       } else if (step.type === "raw") { const subtitle = document.createElement("small"); subtitle.textContent = step.line; heading.append(subtitle); }
       const actions = document.createElement("div"); actions.className = "step-actions";
       actions.append(makeButton(`Duplicate step ${index + 1} below`, "⧉", () => {

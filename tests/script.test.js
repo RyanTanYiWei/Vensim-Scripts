@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { createStep, duplicateStep, variableCountText, createExportRow, addAllRuns, applyExportTimes, stepLines, parseScript, parseCSV, controlText, getRuns } = require("../script.js");
+const { createStep, duplicateStep, variableCountText, createExportRow, addAllRuns, applyExportTimes, stepLines, parseScript, parseCSV, controlText, getRuns, withExtension, filenameStem } = require("../script.js");
 
 test("variable count includes only entries with both a name and a value", () => {
   const variables = [{ name: "", value: "" }, { name: "x", value: "" }, { name: " ", value: "2" }];
@@ -11,6 +11,16 @@ test("variable count includes only entries with both a name and a value", () => 
   assert.equal(variableCountText(variables), "1 variable changed");
   variables[2].name = "y";
   assert.equal(variableCountText(variables), "2 variables changed");
+});
+
+test("fixed extension fields add and display their suffix without duplicating it", () => {
+  assert.equal(withExtension("Tipping_input", ".vsc"), "Tipping_input.vsc");
+  assert.equal(withExtension("Tipping_input.vsc", ".vsc"), "Tipping_input.vsc");
+  assert.equal(withExtension("inputs", ".csv"), "inputs.csv");
+  assert.equal(withExtension("Tipping_sobol", ".txt"), "Tipping_sobol.txt");
+  assert.equal(withExtension("Tipping_sobol.txt", ".txt"), "Tipping_sobol.txt");
+  assert.equal(filenameStem("Tipping_output.lst", ".lst"), "Tipping_output");
+  assert.equal(withExtension("", ".lst"), "");
 });
 
 test("only new export steps start expanded", () => {
@@ -151,13 +161,21 @@ test("single run resets before changes and quotes subscripted commands", () => {
   assert.equal(stepLines(step)[3], '"SIMULATE>SETVAL|Test[male,"0-4"]=2"');
 });
 
-test("additional input filenames pass through for both run types", () => {
+test("additional input filenames receive the fixed csv extension for both run types", () => {
   for (const type of ["single", "sensitivity"]) {
     const step = createStep(type);
-    for (const extension of ["csv", "cin", "tab", "txt"]) {
-      step.cin = `inputs.${extension}`;
-      assert.ok(stepLines(step).includes(`SIMULATE>READCIN|inputs.${extension}`));
-    }
+    step.cin = "inputs.csv";
+    assert.ok(stepLines(step).includes("SIMULATE>READCIN|inputs.csv"));
+    step.cin = withExtension("inputs", ".csv");
+    assert.ok(stepLines(step).includes("SIMULATE>READCIN|inputs.csv"));
+  }
+});
+
+test("imported additional input filenames retain their original extension or lack of one", () => {
+  for (const filename of ["settings.cin", "settings"]) {
+    const source = `SIMULATE>RUNNAME|Imported\nSIMULATE>READCIN|${filename}\nMENU>RUN|O`;
+    const parsed = parseScript(source);
+    assert.equal(parsed.steps.flatMap(step => stepLines(step)).join("\n"), source);
   }
 });
 
@@ -173,7 +191,8 @@ test("imported runs can be selected without rewriting their commands", () => {
 test("sensitivity file method generates a control file and proper commands", () => {
   const step = createStep("sensitivity");
   step.mode = "samples";
-  step.samples = "Tipping_sobol.txt";
+  step.samples = withExtension("Tipping_sobol", ".txt");
+  step.control = "samples.vsc";
   step.output = "Tipping_output.lst";
   assert.equal(controlText(step), ",F,,Tipping_sobol.txt,1\r\n");
   assert.deepEqual(stepLines(step).slice(-3), ["SIMULATE>SENSITIVITY|samples.vsc", "SIMULATE>SENSSAVELIST|Tipping_output.lst", "MENU>RUN_SENSITIVITY|O"]);
